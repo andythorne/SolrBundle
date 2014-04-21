@@ -31,7 +31,7 @@ class MapAllFieldsCommand extends AbstractDocumentCommand
 
         foreach ($fields as $field) {
             if ($field instanceof Field) {
-                $document->addField($field->getNameWithAlias(), $valueMapping[$field->name] ?: '', $field->getBoost());
+                $document->addField($field->getNameWithAlias(), $valueMapping[$field->name], $field->getBoost());
             }
         }
 

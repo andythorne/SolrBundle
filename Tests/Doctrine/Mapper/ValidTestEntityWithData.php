@@ -7,27 +7,27 @@ use FS\SolrBundle\Doctrine\Annotation as Solr;
  *
  * @Solr\Document(boost="1")
  */
-class ValidTestEntity
+class ValidTestEntityWithData
 {
 
     /**
      * @Solr\Id
      */
-    private $id;
+    private $id = 1;
 
     /**
      * @Solr\Field(type="text")
      *
      * @var text
      */
-    private $text;
+    private $text = 'we have text';
 
     /**
-     * @Solr\Field()
+     * @Solr\Field(type="string", boost="1.8")
      *
      * @var text
      */
-    private $title;
+    private $title = 'a title';
 
     /**
      * @Solr\Field(type="date")
@@ -37,11 +37,16 @@ class ValidTestEntity
     private $created_at;
 
     /**
-     * @Solr\Field(type="my_costom_fieldtype")
+     * @Solr\Field(type="my_custom_fieldtype")
      *
      * @var string
      */
     private $costomField;
+
+    function __construct()
+    {
+        $this->created_at = new \DateTime();
+    }
 
     public function getId()
     {
