@@ -27,19 +27,9 @@ class MetaInformation
     private $fields = array();
 
     /**
-     * @var array
-     */
-    private $fieldMapping = array();
-
-    /**
      * @var string
      */
     private $repository = '';
-
-    /**
-     * @var object
-     */
-    private $entity = null;
 
     /**
      * @var number
@@ -52,24 +42,26 @@ class MetaInformation
     private $synchronizationCallback = '';
 
     /**
-     *
-     * @return number
+     * @var \ReflectionClass
      */
-    public function getEntityId()
-    {
-        if ($this->entity !== null) {
-            return $this->entity->getId();
-        }
-
-        return 0;
-    }
+    private $reflection;
 
     /**
-     * @return string
+     * Config array of annotations
+     *
+     * @param string $class
+     * @param array  $annotations
      */
-    public function getIdentifier()
+    function __construct($class, array $annotations)
     {
-        return $this->identifier;
+        $this->className  = $class;
+        $this->reflection = new \ReflectionClass($class);
+
+        $this->boost                   = $annotations['boost'];
+        $this->fields                  = $annotations['fields'];
+        $this->synchronizationCallback = $annotations['synchronization_callback'];
+        $this->identifier              = $annotations['identifier'];
+        $this->repository              = $annotations['repository'];
     }
 
     /**
@@ -83,13 +75,21 @@ class MetaInformation
     /**
      * @return string
      */
+    public function getIdentifier()
+    {
+        return $this->identifier;
+    }
+
+    /**
+     * @return string
+     */
     public function getDocumentName()
     {
         return $this->documentName;
     }
 
     /**
-     * @return array With instances of FS\SolrBundle\Doctrine\Annotation\Field
+     * @return \FS\SolrBundle\Doctrine\Annotation\Field[]
      */
     public function getFields()
     {
@@ -105,30 +105,6 @@ class MetaInformation
     }
 
     /**
-     * @return object
-     */
-    public function getEntity()
-    {
-        return $this->entity;
-    }
-
-    /**
-     * @param string $identifiert
-     */
-    public function setIdentifier($identifier)
-    {
-        $this->identifier = $identifier;
-    }
-
-    /**
-     * @param string $className
-     */
-    public function setClassName($className)
-    {
-        $this->className = $className;
-    }
-
-    /**
      * @param string $documentName
      */
     public function setDocumentName($documentName)
@@ -137,78 +113,28 @@ class MetaInformation
     }
 
     /**
-     * @param multitype: $fields
-     */
-    public function setFields($fields)
-    {
-        $this->fields = $fields;
-    }
-
-    /**
      * @param string $field
+     *
      * @return boolean
      */
     public function hasField($field)
     {
-        if (count($this->fields) == 0) {
-            return false;
-        }
-
-        return isset($this->fields[$field]);
-    }
-
-    /**
-     * @param string $field
-     * @param string $value
-     */
-    public function setFieldValue($field, $value)
-    {
-        $this->fields[$field]->value = $value;
+        return array_key_exists($field, $this->fields);
     }
 
     /**
      * @param unknown_type $field
+     *
      * @return Field|null
      */
     public function getField($field)
     {
-        if (!$this->hasField($field)) {
+        if(!$this->hasField($field))
+        {
             return null;
         }
 
         return $this->fields[$field];
-    }
-
-    /**
-     * @param string $repository
-     */
-    public function setRepository($repository)
-    {
-        $this->repository = $repository;
-    }
-
-    /**
-     * @param object $entity
-     */
-    public function setEntity($entity)
-    {
-        $this->entity = $entity;
-    }
-
-    /**
-     * @return array
-     */
-    public function getFieldMapping()
-    {
-        return $this->fieldMapping;
-    }
-
-    /**
-     * @param array $fieldMapping
-     */
-    public function setFieldMapping($fieldMapping)
-    {
-        $this->fieldMapping = $fieldMapping;
     }
 
     /**
@@ -220,19 +146,12 @@ class MetaInformation
     }
 
     /**
-     * @param number $boost
-     */
-    public function setBoost($boost)
-    {
-        $this->boost = $boost;
-    }
-
-    /**
      * @return boolean
      */
     public function hasSynchronizationFilter()
     {
-        if ($this->synchronizationCallback == '') {
+        if($this->synchronizationCallback == '')
+        {
             return false;
         }
 
@@ -248,10 +167,24 @@ class MetaInformation
     }
 
     /**
-     * @param string $synchronizationCallback
+     * Accepts an entity, and turns it into an array of values for the document
+     *
+     * @param $entity
+     *
+     * @return array
      */
-    public function setSynchronizationCallback($synchronizationCallback)
+    public function extractSolrValues($entity)
     {
-        $this->synchronizationCallback = $synchronizationCallback;
+        $entityVals = array();
+
+        foreach($this->getFields() as $field)
+        {
+            $prop = $this->reflection->getProperty($field->field);
+            $prop->setAccessible(true);
+            $field->value             = $prop->getValue($entity);
+            $entityVals[$field->name] = $field->getValue();
+        }
+
+        return $entityVals;
     }
 }

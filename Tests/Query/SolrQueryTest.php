@@ -2,9 +2,9 @@
 
 namespace FS\SolrBundle\Tests\Query;
 
-use FS\SolrBundle\Doctrine\Annotation\AnnotationReader;
+use FS\SolrBundle\Doctrine\Mapper\MetaInformationFactory;
 use FS\SolrBundle\Query\SolrQuery;
-use FS\SolrBundle\SolrQueryFacade;
+use FS\SolrBundle\Tests\Doctrine\Annotation\Entities\ValidTestWithFieldTypes;
 
 /**
  *
@@ -26,9 +26,13 @@ class SolrQueryTest extends \PHPUnit_Framework_TestCase
     {
         $solr = $this->getMock('FS\SolrBundle\Solr', array(), array(), '', false);
 
+        $class = new ValidTestWithFieldTypes();
+        $factory = new MetaInformationFactory();
+        $meta = $factory->loadInformation($class);
+
         $solrQuery = new SolrQuery();
         $solrQuery->setSolr($solr);
-        $solrQuery->setMappedFields($this->getFieldMapping());
+        $solrQuery->setEntityMeta($meta);
 
         return $solrQuery;
     }

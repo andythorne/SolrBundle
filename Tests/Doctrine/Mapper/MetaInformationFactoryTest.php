@@ -48,7 +48,6 @@ class MetaInformationFactoryTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($expectedClassName, $actual->getClassName(), 'wrong classname');
         $this->assertEquals($expectedDocumentName, $actual->getDocumentName(), 'wrong documentname');
         $this->assertEquals(4, count($actual->getFields()), '4 fields are set');
-        $this->assertEquals(5, count($actual->getFieldMapping()), '5 fields are mapped');
     }
 
     public function testLoadInformation_LoadInformationFromObject()
@@ -72,7 +71,6 @@ class MetaInformationFactoryTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @expectedException RuntimeException
-     * @expectedExceptionMessage no declaration for document found in entity
      */
     public function testLoadInformation_EntityHasNoDocumentDeclaration_ShouldThrowException()
     {

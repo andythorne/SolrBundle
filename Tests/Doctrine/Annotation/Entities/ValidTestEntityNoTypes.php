@@ -9,7 +9,6 @@ use FS\SolrBundle\Doctrine\Annotation as Solr;
  */
 class ValidTestEntityNoTypes
 {
-
     /**
      * @Solr\Id
      */
@@ -20,6 +19,5 @@ class ValidTestEntityNoTypes
      * @Solr\Field
      */
     private $title;
-
 }
 

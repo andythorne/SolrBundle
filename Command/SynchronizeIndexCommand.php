@@ -48,10 +48,11 @@ class SynchronizeIndexCommand extends ContainerAwareCommand
         }
 
         $solr = $this->getContainer()->get('solr.client.default');
+        $solrRepository = $solr->getRepository($repository->getClassName());
 
         foreach ($entities as $entity) {
             try {
-                $solr->synchronizeIndex($entity);
+                $solrRepository->update($entity);
             } catch (\Exception $e) {}
         }
 

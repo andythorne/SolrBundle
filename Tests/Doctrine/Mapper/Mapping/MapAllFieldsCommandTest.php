@@ -21,10 +21,13 @@ class MapAllFieldsCommandTest extends SolrDocumentTest
     {
         $command = new MapAllFieldsCommand();
 
-        $actual = $command->createDocument(MetaTestInformationFactory::getMetaInformation());
+        $entity = MetaTestInformationFactory::getEntity();
+        $meta = MetaTestInformationFactory::getMetaInformation($entity);
+
+        $actual = $command->createDocument($entity, $meta);
 
         $this->assertTrue($actual instanceof Document, 'is a Document');
-        $this->assertFieldCount(3, $actual, 'three fields are mapped');
+        $this->assertFieldCount(4, $actual, 'four fields are mapped');
 
         $this->assertEquals(1, $actual->getBoost(), 'document boost should be 1');
 

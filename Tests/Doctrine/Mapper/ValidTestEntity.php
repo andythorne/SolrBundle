@@ -23,7 +23,7 @@ class ValidTestEntity
     private $text;
 
     /**
-     * @Solr\Field()
+     * @Solr\Field(type="string", boost="1.8")
      *
      * @var text
      */

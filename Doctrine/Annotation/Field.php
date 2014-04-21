@@ -6,83 +6,12 @@ use Doctrine\Common\Annotations\Annotation;
 /**
  * @Annotation
  */
-class Field extends Annotation
+class Field extends BaseField
 {
-
-    /**
-     * @var string
-     */
-    public $type;
-
-    /**
-     * @var string
-     */
-    public $name;
-
     /**
      * @var numeric
      */
     public $boost = 0;
-
-    /**
-     * @var array
-     */
-    private static $TYP_MAPPING = array(
-        'string' => '_s',
-        'text' => '_t',
-        'date' => '_dt',
-        'boolean' => '_b',
-        'integer' => '_i',
-        'long' => '_l',
-        'float' => '_f',
-        'double' => '_d',
-    );
-
-    /**
-     * returns field name with type-suffix:
-     *
-     * eg: title_s
-     *
-     * @throws \RuntimeException
-     * @return string
-     */
-    public function getNameWithAlias()
-    {
-        return $this->normalizeName($this->name) . $this->getTypeSuffix($this->type);
-    }
-
-    /**
-     * @param string $type
-     * @return string
-     */
-    private function getTypeSuffix($type)
-    {
-        if ($type == '') {
-            return '';
-        }
-
-        if (!isset(self::$TYP_MAPPING[$this->type])) {
-            return '';
-        }
-
-        return self::$TYP_MAPPING[$this->type];
-    }
-
-    /**
-     * @return string
-     */
-    public function getValue()
-    {
-        return $this->value;
-    }
-
-    /**
-     * @return string
-     */
-    public function __toString()
-    {
-        return $this->name;
-    }
 
     /**
      * @throws \InvalidArgumentException if boost is not a number
@@ -101,26 +30,4 @@ class Field extends Annotation
         return null;
     }
 
-    /**
-     * normalize class attributes camelcased names to underscores
-     * (according to solr specification, document field names should
-     * contain only lowercase characters and underscores to maintain
-     * retro compatibility with old components).
-     *
-     * @param $name The field name
-     *
-     * @return string normalized field name
-     */
-    private function normalizeName($name)
-    {
-        $words = preg_split('/(?=[A-Z])/', $name);
-        $words = array_map(
-            function ($value) {
-                return strtolower($value);
-            },
-            $words
-        );
-
-        return implode('_', $words);
-    }
 }

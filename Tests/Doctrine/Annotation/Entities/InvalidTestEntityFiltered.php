@@ -10,5 +10,9 @@ use FS\SolrBundle\Doctrine\Annotation as Solr;
  */
 class InvalidTestEntityFiltered
 {
+    /**
+     * @Solr\Id
+     */
+    private $id;
 }
 

@@ -1,9 +1,9 @@
 {
-    "name": "floriansemm/solr-bundle",
+    "name": "andythorne/solr-bundle",
     "type": "symfony-bundle",
     "description": "Symfony2 Solr integration bundle",
     "keywords": ["search", "index", "symfony", "solr"],
-    "homepage": "https://github.com/floriansemm/SolrBundle",
+    "homepage": "https://github.com/andythorne/SolrBundle",
     "license": "MIT",
     "require": {
         "php": ">=5.3.2",

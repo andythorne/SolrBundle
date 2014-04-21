@@ -17,7 +17,6 @@
         <parameter key="solr.doctrine.classnameresolver.known_entity_namespaces.class">FS\SolrBundle\Doctrine\ClassnameResolver\KnownNamespaceAliases</parameter>
 
         <parameter key="solr.mapping.all.class">FS\SolrBundle\Doctrine\Mapper\Mapping\MapAllFieldsCommand</parameter>
-        <parameter key="solr.mapping.identifier.class">FS\SolrBundle\Doctrine\Mapper\Mapping\MapIdentifierCommand</parameter>
 
         <parameter key="solr.console.command.result.class">FS\SolrBundle\Console\ConsoleCommandResults</parameter>
         <parameter key="solr.synchronize.error.listener.class">FS\SolrBundle\Event\Listener\SynchronizationSummaryListener</parameter>
@@ -25,13 +24,13 @@
     </parameters>
 
     <services>
-		<service id="solr.client" class="%solr.class%" abstract="true">
-			<argument type="service" id="solr.client" />
-			<argument type="service" id="solr.mapping.factory" />
-			<argument type="service" id="event_dispatcher" />
-			<argument type="service" id="solr.meta.information.factory" />
-			<argument type="service" id="solr.doctrine.entity_mapper" />
-		</service>
+        <service id="solr.client" class="%solr.class%" abstract="true">
+            <argument type="service" id="solr.client" />
+            <argument type="service" id="solr.mapping.factory" />
+            <argument type="service" id="event_dispatcher" />
+            <argument type="service" id="solr.meta.information.factory" />
+            <argument type="service" id="solr.doctrine.entity_mapper" />
+        </service>
 
         <service id="solr.client.adapter" class="%solr.client.adapter.class%" abstract="true" factory-service="solr.client.adapter.builder" factory-method="build" />
 
@@ -39,23 +38,19 @@
             <argument type="collection" />
         </service>
 
-		<service id="solr.meta.information.factory" class="%solr.meta.information.factory.class%" public="false" />
+        <service id="solr.meta.information.factory" class="%solr.meta.information.factory.class%" public="false" />
 
-    	<service id="solr.mapping.factory" class="%solr.mapping.factory.class%" public="false" />
+        <service id="solr.mapping.factory" class="%solr.mapping.factory.class%" public="false" />
 
         <service id="solr.doctrine.classnameresolver.known_entity_namespaces" class="%solr.doctrine.classnameresolver.known_entity_namespaces.class%" />
 
-    	<service id="solr.doctrine.classnameresolver" class="%solr.doctrine.classnameresolver.class%" public="false">
+        <service id="solr.doctrine.classnameresolver" class="%solr.doctrine.classnameresolver.class%" public="false">
             <argument type="service" id="solr.doctrine.classnameresolver.known_entity_namespaces" />
         </service>
-    	
-    	<service id="solr.mapping.all" class="%solr.mapping.all.class%" public="false">
-    		<tag name="solr.document.command" command="all" />
-    	</service>
-    	
-    	<service id="solr.mapping.identifier" class="%solr.mapping.identifier.class%" public="false">
-    		<tag name="solr.document.command" command="identifier" />
-    	</service>
+        
+        <service id="solr.mapping.all" class="%solr.mapping.all.class%" public="false">
+            <tag name="solr.document.command" command="all" />
+        </service>
 
         <service id="solr.console.command.results" class="%solr.console.command.result.class%">
         </service>
@@ -73,20 +68,19 @@
         </service>
 
         <service id="solr.doctrine.entity_mapper" class="FS\SolrBundle\Doctrine\Mapper\EntityMapper">
-            <argument id="solr.doctrine.hydration.doctrine_hydrator" type="service" />
-            <argument id="solr.doctrine.hydration.index_hydrator" type="service" />
+            <call method="addHydrator" >
+                <argument id="solr.doctrine.hydration.doctrine_hydrator" type="service" />
+            </call>
+            <call method="addHydrator" >
+                <argument id="solr.doctrine.hydration.index_hydrator" type="service" />
+            </call>
         </service>
 
         <service id="solr.doctrine.hydration.doctrine_hydrator" class="FS\SolrBundle\Doctrine\Hydration\DoctrineHydrator">
             <argument id="doctrine" type="service" />
-            <argument id="solr.doctrine.hydration.value_hydrator" type="service" />
-        </service>
-
-        <service id="solr.doctrine.hydration.value_hydrator" class="FS\SolrBundle\Doctrine\Hydration\ValueHydrator">
         </service>
 
         <service id="solr.doctrine.hydration.index_hydrator" class="FS\SolrBundle\Doctrine\Hydration\IndexHydrator">
-            <argument id="solr.doctrine.hydration.value_hydrator" type="service" />
         </service>
     </services>
 </container>

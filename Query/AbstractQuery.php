@@ -1,12 +1,19 @@
 <?php
 namespace FS\SolrBundle\Query;
 
+use FS\SolrBundle\Doctrine\Mapper\MetaInformation;
 use FS\SolrBundle\Solr;
 use Solarium\QueryType\Select\Query\Query;
 use Solarium\QueryType\Update\Query\Document\Document;
 
 abstract class AbstractQuery extends Query
 {
+    /**
+     * @var MetaInformation
+     */
+    protected $entityMeta;
+
+
     /**
      * @var Document
      */
@@ -19,24 +26,19 @@ abstract class AbstractQuery extends Query
     protected $solr = null;
 
     /**
-     * @var object
+     * @param MetaInformation $entityMeta
      */
-    private $entity = null;
-
-    /**
-     * @return the $entity
-     */
-    public function getEntity()
+    public function setEntityMeta(MetaInformation $entityMeta)
     {
-        return $this->entity;
+        $this->entityMeta = $entityMeta;
     }
 
     /**
-     * @param object $entity
+     * @return MetaInformation
      */
-    public function setEntity($entity)
+    public function getEntityMeta()
     {
-        $this->entity = $entity;
+        return $this->entityMeta;
     }
 
     /**
@@ -80,4 +82,5 @@ abstract class AbstractQuery extends Query
     {
         $this->getSolr()->getMapper()->setHydrationMode($mode);
     }
+
 }

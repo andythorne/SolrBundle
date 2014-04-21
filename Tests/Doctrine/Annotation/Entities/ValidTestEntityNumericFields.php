@@ -10,6 +10,10 @@ use FS\SolrBundle\Doctrine\Annotation as Solr;
  */
 class ValidTestEntityNumericFields
 {
+    /**
+     * @Solr\Id
+     */
+    private $id;
 
     /**
      *

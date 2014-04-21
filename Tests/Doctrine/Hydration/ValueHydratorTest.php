@@ -3,8 +3,7 @@
 namespace FS\SolrBundle\Tests\Doctrine\Hydration;
 
 
-use FS\SolrBundle\Doctrine\Hydration\ValueHydrator;
-use FS\SolrBundle\Doctrine\Mapper\MetaInformationFactory;
+use FS\SolrBundle\Doctrine\Hydration\IndexHydrator;
 use FS\SolrBundle\Tests\Doctrine\Mapper\SolrDocumentStub;
 use FS\SolrBundle\Tests\Doctrine\Mapper\ValidTestEntity;
 
@@ -25,11 +24,8 @@ class ValueHydratorTest extends \PHPUnit_Framework_TestCase
 
         $entity = new ValidTestEntity();
 
-        $metainformations = new MetaInformationFactory();
-        $metainformations = $metainformations->loadInformation($entity);
-
-        $hydrator = new ValueHydrator();
-        $hydratedDocument = $hydrator->hydrate($obj, $metainformations);
+        $hydrator = new IndexHydrator();
+        $hydratedDocument = $hydrator->merge($entity, $obj);
 
         $this->assertTrue($hydratedDocument instanceof $entity);
         $this->assertEquals(1, $entity->getId());
@@ -48,15 +44,11 @@ class ValueHydratorTest extends \PHPUnit_Framework_TestCase
 
         $entity = new ValidTestEntity();
 
-        $metainformations = new MetaInformationFactory();
-        $metainformations = $metainformations->loadInformation($entity);
-
-        $hydrator = new ValueHydrator();
-        $hydratedDocument = $hydrator->hydrate($obj, $metainformations);
+        $hydrator = new IndexHydrator();
+        $hydratedDocument = $hydrator->merge($entity, $obj);
 
         $this->assertTrue($hydratedDocument instanceof $entity);
         $this->assertEquals(1, $entity->getId());
         $this->assertEquals(12345, $entity->getCreatedAt());
     }
 }
- 

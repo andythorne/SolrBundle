@@ -9,7 +9,6 @@ use FS\SolrBundle\Doctrine\Annotation as Solr;
  */
 class ValidTestEntityWithInvalidBoost
 {
-
     /**
      * @Solr\Id
      */

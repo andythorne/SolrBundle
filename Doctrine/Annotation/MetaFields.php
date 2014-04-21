@@ -6,7 +6,7 @@ use Doctrine\Common\Annotations\Annotation;
 /**
  * @Annotation
  */
-class Id extends BaseField
+class MetaFields extends Field
 {
-
+    public $fields = array();
 }

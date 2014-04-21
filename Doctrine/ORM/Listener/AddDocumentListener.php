@@ -28,7 +28,8 @@ class AddDocumentListener
         $entity = $args->getEntity();
 
         try {
-            $this->solr->addDocument($entity);
+            $repo = $this->solr->getRepository($entity);
+            $repo->insert($entity);
         } catch (\RuntimeException $e) {
         }
     }

@@ -30,11 +30,20 @@ class Event extends BaseEvent
     private $sourceEvent;
 
     /**
-     * @param object $client
+     * @var object
+     */
+    private $entity;
+
+    /**
+     * @param object          $client
      * @param MetaInformation $metainformation
+     * @param object          $entity
+     * @param string          $solrAction
+     * @param Event           $sourceEvent
      */
     public function __construct(
         $client = null,
+        $entity = null,
         MetaInformation $metainformation = null,
         $solrAction = '',
         Event $sourceEvent = null
@@ -42,6 +51,7 @@ class Event extends BaseEvent
     {
         $this->client = $client;
         $this->metainformation = $metainformation;
+        $this->entity = $entity;
         $this->solrAction = $solrAction;
         $this->sourceEvent = $sourceEvent;
     }
@@ -70,8 +80,21 @@ class Event extends BaseEvent
         return $this->sourceEvent;
     }
 
+    /**
+     * @return bool
+     */
     public function hasSourceEvent()
     {
         return $this->sourceEvent !== null;
     }
+
+    /**
+     * @return object
+     */
+    public function getEntity()
+    {
+        return $this->entity;
+    }
+
+
 }

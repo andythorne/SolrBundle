@@ -2,38 +2,38 @@
 
 namespace FS\SolrBundle\Doctrine\Hydration;
 
+use Doctrine\ORM\Query;
+use Doctrine\ORM\QueryBuilder;
 use FS\SolrBundle\Doctrine\Mapper\MetaInformation;
 
 /**
  * hydrates Entity from Document
  */
-class IndexHydrator implements Hydrator
+class IndexHydrator extends AbstractMergableHydrator implements HydratorInterface
 {
-    /**
-     * @var Hydrator
-     */
-    private $valueHydrator;
 
     /**
-     * @param Hydrator $valueHydrator
+     * @inheritdoc
      */
-    public function __construct(Hydrator $valueHydrator)
+    public function supports($method)
     {
-        $this->valueHydrator = $valueHydrator;
+        return $method === HydrationModes::HYDRATE_INDEX;
     }
 
     /**
-     * @param $document
-     * @param MetaInformation $metaInformation
-     * @return object
+     * @inheritdoc
      */
-    public function hydrate($document, MetaInformation $metaInformation)
+    public function hydrate($documents, MetaInformation $meta, QueryBuilder $qb = null, $hydration = Query::HYDRATE_OBJECT)
     {
-        $sourceTargetEntity = $metaInformation->getEntity();
-        $targetEntity = clone $sourceTargetEntity;
+        $entities = array();
 
-        $metaInformation->setEntity($targetEntity);
+        $sourceTargetEntity = $meta->getClassName();
 
-        return $this->valueHydrator->hydrate($document, $metaInformation);
+        foreach($documents as $document)
+        {
+            $entities[] = $this->merge(new $sourceTargetEntity(), $document) ;
+        }
+
+        return $entities;
     }
 } 

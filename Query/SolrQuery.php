@@ -1,13 +1,11 @@
 <?php
 namespace FS\SolrBundle\Query;
 
+use Doctrine\ORM\Query;
+use FS\SolrBundle\Doctrine\Mapper\MetaInformation;
+
 class SolrQuery extends AbstractQuery
 {
-
-    /**
-     * @var array
-     */
-    private $mappedFields = array();
 
     /**
      * @var array
@@ -24,33 +22,35 @@ class SolrQuery extends AbstractQuery
      */
     private $useWildcards = true;
 
-    /**
-     * @var string
-     */
-    private $customQuery = '';
+    private $mappedFields = array();
 
-    /**
-     * @return array
-     */
-    public function getResult()
+    public function setEntityMeta(MetaInformation $entityMeta)
     {
-        return $this->solr->query($this);
+
+        $fields = $entityMeta->getFields();
+
+        foreach ($fields as $field) {
+            $this->mappedFields[$field->name] = $field;
+        }
+
+        parent::setEntityMeta($entityMeta);
     }
 
-    /**
-     * @return array
-     */
     public function getMappedFields()
     {
         return $this->mappedFields;
     }
 
+
+
     /**
-     * @param array $mappedFields
+     * @param int $hydration
+     *
+     * @return array
      */
-    public function setMappedFields($mappedFields)
+    public function getResult($hydration = Query::HYDRATE_OBJECT)
     {
-        $this->mappedFields = $mappedFields;
+        return $this->solr->query($this, $hydration);
     }
 
     /**
@@ -70,22 +70,6 @@ class SolrQuery extends AbstractQuery
     }
 
     /**
-     * @return string
-     */
-    public function getCustomQuery()
-    {
-        return $this->customQuery;
-    }
-
-    /**
-     * @param string $query
-     */
-    public function setCustomQuery($query)
-    {
-        $this->customQuery = $query;
-    }
-
-    /**
      * @return array
      */
     public function getSearchTerms()
@@ -94,45 +78,44 @@ class SolrQuery extends AbstractQuery
     }
 
     /**
-     * @param array $value
+     * @param array|string $value
      */
     public function queryAllFields($value)
     {
         $this->setUseAndOperator(false);
 
-        foreach ($this->mappedFields as $documentField => $entityField) {
-            $this->searchTerms[$documentField] = $value;
+        foreach($this->mappedFields as $name => $field)
+        {
+            $this->searchTerms[$field->getNameWithAlias()] = $value;
         }
     }
 
     /**
      *
-     * @param string $field
+     * @param string $fieldName
      * @param string $value
-     * @return SolrQuery
+     * @return self
      */
-    public function addSearchTerm($field, $value)
+    public function addSearchTerm($fieldName, $value)
     {
-        $documentFieldsAsValues = array_flip($this->mappedFields);
-
-        if (array_key_exists($field, $documentFieldsAsValues)) {
-            $documentFieldName = $documentFieldsAsValues[$field];
-
-            $this->searchTerms[$documentFieldName] = $value;
+        if(array_key_exists($fieldName, $this->mappedFields))
+        {
+            $this->searchTerms[$this->mappedFields[$fieldName]->getNameWithAlias()] = $value;
         }
 
         return $this;
     }
 
     /**
-     * @param string $field
+     * @param string $fieldName
+     *
      * @return SolrQuery
      */
-    public function addField($field)
+    public function addField($fieldName)
     {
-        $entityFieldNames = array_flip($this->mappedFields);
-        if (array_key_exists($field, $entityFieldNames)) {
-            parent::addField($entityFieldNames[$field]);
+        if(array_key_exists($fieldName, $this->mappedFields))
+        {
+            parent::addField($this->mappedFields[$fieldName]->getNameWithAlias());
         }
 
         return $this;
@@ -143,11 +126,6 @@ class SolrQuery extends AbstractQuery
      */
     public function getQuery()
     {
-        if ($this->customQuery) {
-            $this->setQuery($this->customQuery);
-            return $this->customQuery;
-        }
-
         $term = '';
         if (count($this->searchTerms) == 0) {
             return $term;
