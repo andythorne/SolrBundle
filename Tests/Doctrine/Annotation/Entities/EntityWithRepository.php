@@ -10,6 +10,9 @@ use FS\SolrBundle\Doctrine\Annotation as Solr;
  */
 class EntityWithRepository
 {
-
+    /**
+     * @Solr\Id
+     */
+    private $id;
 }
 

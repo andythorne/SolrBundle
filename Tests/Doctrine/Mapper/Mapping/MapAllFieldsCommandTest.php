@@ -3,6 +3,7 @@
 namespace FS\SolrBundle\Tests\Doctrine\Mapper\Mapping;
 
 use FS\SolrBundle\Doctrine\Mapper\Mapping\MapAllFieldsCommand;
+use FS\SolrBundle\Tests\Doctrine\Mapper\ValidTestEntityWithData;
 use FS\SolrBundle\Tests\Util\MetaTestInformationFactory;
 use Solarium\QueryType\Update\Query\Document\Document;
 
@@ -21,10 +22,13 @@ class MapAllFieldsCommandTest extends SolrDocumentTest
     {
         $command = new MapAllFieldsCommand();
 
-        $actual = $command->createDocument(MetaTestInformationFactory::getMetaInformation());
+        $entity = new ValidTestEntityWithData();
+        $meta = MetaTestInformationFactory::getMetaInformation($entity);
+
+        $actual = $command->createDocument($entity, $meta);
 
         $this->assertTrue($actual instanceof Document, 'is a Document');
-        $this->assertFieldCount(3, $actual, 'three fields are mapped');
+        $this->assertFieldCount(3, $actual, 'five fields are mapped');
 
         $this->assertEquals(1, $actual->getBoost(), 'document boost should be 1');
 

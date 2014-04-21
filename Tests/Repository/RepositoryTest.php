@@ -16,96 +16,29 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
 
     public function testFind_DocumentIsKnown()
     {
-        $document = new Document();
-        $document->addField('id', 2);
-        $document->addField('document_name_s', 'post');
-
-        $metaFactory = $this->getMock(
-            'FS\SolrBundle\Doctrine\Mapper\MetaInformationFactory',
-            array(),
-            array(),
-            '',
-            false
-        );
-        $metaFactory->expects($this->once())
-            ->method('loadInformation')
-            ->will($this->returnValue(MetaTestInformationFactory::getMetaInformation()));
-
-        $mapper = $this->getMock('FS\SolrBundle\Doctrine\Mapper\EntityMapper', array(), array(), '', false);
-        $mapper->expects($this->once())
-            ->method('toDocument')
-            ->will($this->returnValue($document));
-
-        $solr = $this->getMock('FS\SolrBundle\Solr', array(), array(), '', false);
-        $solr->expects($this->exactly(2))
-            ->method('getMapper')
-            ->will($this->returnValue($mapper));
-
-        $solr->expects($this->once())
-            ->method('getCommandFactory')
-            ->will($this->returnValue(CommandFactoryStub::getFactoryWithAllMappingCommand()));
-
-        $solr->expects($this->once())
-            ->method('getMetaFactory')
-            ->will($this->returnValue($metaFactory));
 
         $entity = new ValidTestEntity();
-        $solr->expects($this->once())
-            ->method('query')
-            ->will($this->returnValue(array($entity)));
+        $meta = MetaTestInformationFactory::getMetaInformation($entity);
 
-        $repo = new Repository($solr, $entity);
+        $solr =  $this->mockSolr($entity, $meta);
+        $repo = new Repository($solr, $meta);
+
         $actual = $repo->find(2);
 
-        $this->assertTrue($actual instanceof ValidTestEntity, 'find return no entity');
+        $this->assertInstanceOf(get_class($entity), $actual, 'find return no entity');
     }
 
     public function testFindAll()
     {
-        $document = new Document();
-        $document->addField('id', 2);
-        $document->addField('document_name_s', 'post');
-
-        $metaFactory = $this->getMock(
-            'FS\SolrBundle\Doctrine\Mapper\MetaInformationFactory',
-            array(),
-            array(),
-            '',
-            false
-        );
-        $metaFactory->expects($this->once())
-            ->method('loadInformation')
-            ->will($this->returnValue(MetaTestInformationFactory::getMetaInformation()));
-
-        $mapper = $this->getMock('FS\SolrBundle\Doctrine\Mapper\EntityMapper', array(), array(), '', false);
-        $mapper->expects($this->once())
-            ->method('toDocument')
-            ->will($this->returnValue($document));
-
-        $solr = $this->getMock('FS\SolrBundle\Solr', array(), array(), '', false);
-        $solr->expects($this->exactly(2))
-            ->method('getMapper')
-            ->will($this->returnValue($mapper));
-
-        $solr->expects($this->once())
-            ->method('getCommandFactory')
-            ->will($this->returnValue(CommandFactoryStub::getFactoryWithAllMappingCommand()));
-
-        $solr->expects($this->once())
-            ->method('getMetaFactory')
-            ->will($this->returnValue($metaFactory));
-
         $entity = new ValidTestEntity();
-        $solr->expects($this->once())
-            ->method('query')
-            ->will($this->returnValue(array($entity)));
+        $meta = MetaTestInformationFactory::getMetaInformation($entity);
 
-        $repo = new Repository($solr, $entity);
+        $solr =  $this->mockSolr($entity, $meta);
+        $repo = new Repository($solr, $meta);
+
         $actual = $repo->findAll();
 
         $this->assertTrue(is_array($actual));
-
-        $this->assertNull($document->id, 'id was removed');
     }
 
     public function testFindBy()
@@ -115,27 +48,70 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
             'text' => 'bar'
         );
 
-        $solr = $this->getMock('FS\SolrBundle\Solr', array(), array(), '', false);
-        $query = $this->getMock('FS\SolrBundle\Query\SolrQuery', array(), array(), '', false);
-        $query->expects($this->exactly(2))
-            ->method('addSearchTerm');
-
-        $solr->expects($this->once())
-            ->method('createQuery')
-            ->will($this->returnValue($query));
-
-        $solr->expects($this->once())
-            ->method('query')
-            ->with($query)
-            ->will($this->returnValue(array()));
-
         $entity = new ValidTestEntity();
-        $repo = new Repository($solr, $entity);
+        $meta = MetaTestInformationFactory::getMetaInformation($entity);
+
+        $solr = $this->mockSolr($entity, $meta);
+
+        $repo = new Repository($solr, $meta);
 
         $found = $repo->findBy($fields);
 
         $this->assertTrue(is_array($found));
     }
+
+    private function mockSolr($entity, $meta)
+    {
+
+        $metaFactory = $this->getMock(
+            'FS\SolrBundle\Doctrine\Mapper\MetaInformationFactory',
+            array(),
+            array(),
+            '',
+            false
+        );
+
+        $metaFactory->expects($this->any())
+                    ->method('loadInformation')
+                    ->will($this->returnValue($meta));
+
+        $mapper = $this->getMock('FS\SolrBundle\Doctrine\Mapper\EntityMapper', array('fromResponse'), array(), '', false);
+        $mapper->expects($this->once())
+               ->method('fromResponse')
+               ->will($this->returnValue(array($entity)));
+
+        $solr = $this->getMock('FS\SolrBundle\Solr', array(), array(), '', false);
+        $solr->expects($this->exactly(2))
+             ->method('getMapper')
+             ->will($this->returnValue($mapper));
+
+        $solr->expects($this->once())
+             ->method('getCommandFactory')
+             ->will($this->returnValue(CommandFactoryStub::getFactoryWithAllMappingCommand()));
+
+        $solr->expects($this->any())
+             ->method('getMetaFactory')
+             ->will($this->returnValue($metaFactory));
+
+        $query = $this->getMock('FS\SolrBundle\Query\SolrQuery', array(), array(), '', false);
+        $query->expects($this->any())
+              ->method('addSearchTerm');
+
+        $solrResult = $this->getMock('\Solarium\QueryType\Select\Result\Result', array('getDocuments', 'count'), array(), '', false);
+        $solrResult->expects($this->once())
+                   ->method('getDocuments')
+                   ->will($this->returnValue(array($entity)));
+        $solrResult->expects($this->once())
+                   ->method('count')
+                   ->will($this->returnValue(1));
+
+        $solr->expects($this->once())
+             ->method('query')
+             ->will($this->returnValue($solrResult));
+
+        return $solr;
+    }
+
 
 }
 

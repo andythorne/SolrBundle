@@ -5,6 +5,9 @@ use FS\SolrBundle\Repository\Repository;
 
 class ValidEntityRepository extends Repository
 {
-
+    /**
+     * @Solr\Id
+     */
+    private $id;
 }
 

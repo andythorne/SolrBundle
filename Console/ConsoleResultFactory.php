@@ -29,11 +29,11 @@ class ConsoleResultFactory
      */
     private function getResultId(Event $event)
     {
-        if ($event->getMetaInformation() == null) {
+        if ($event->getEntity() == null) {
             return null;
         }
 
-        return $event->getMetaInformation()->getEntityId();
+        return $event->getEntity()->getId();
     }
 
     /**

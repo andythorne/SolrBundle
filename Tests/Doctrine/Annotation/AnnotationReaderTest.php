@@ -2,7 +2,6 @@
 
 namespace FS\SolrBundle\Tests\Doctrine\Mapping\Mapper;
 
-use FS\SolrBundle\Doctrine\Annotation\Field;
 use FS\SolrBundle\Tests\Doctrine\Annotation\Entities\ValidTestEntityNoBoost;
 use FS\SolrBundle\Tests\Doctrine\Annotation\Entities\ValidTestEntityNoTypes;
 use FS\SolrBundle\Tests\Doctrine\Annotation\Entities\ValidTestEntityFiltered;
@@ -20,35 +19,59 @@ use FS\SolrBundle\Tests\Doctrine\Mapper\NotIndexedEntity;
  */
 class AnnotationReaderTest extends \PHPUnit_Framework_TestCase
 {
+    public function textParse_Valid()
+    {
+        $reader = new AnnotationReader();
 
+        $class = new EntityWithRepository();
+        $annotations = $reader->parse($class);
+
+        $this->assertEquals(5, count($annotations));
+
+        $this->assertArrayHasKey('boost', $annotations, 'parse returned boost array');
+        $this->assertArrayHasKey('fields', $annotations, 'parse returned fields array');
+        $this->assertArrayHasKey('synchronization_callback', $annotations, 'parse returned synchronization array');
+        $this->assertArrayHasKey('identifier', $annotations, 'parse returned identifier array');
+        $this->assertArrayHasKey('repository', $annotations, 'parse returned repository array');
+
+    }
+
+    /**
+     * @expectedException RuntimeException
+     */
     public function testGetFields_NoFieldsDected()
     {
         $reader = new AnnotationReader();
 
-        $fields = $reader->getFields(new NotIndexedEntity());
+        $class = new NotIndexedEntity();
+        $annotations = $reader->parse($class);
 
-        $this->assertEquals(0, count($fields));
+        $this->assertEquals(0, count($annotations));
     }
 
     public function testGetFields_ThreeFieldsDetected()
     {
         $reader = new AnnotationReader();
 
-        $fields = $reader->getFields(new ValidTestEntity());
+        $class = new ValidTestEntity();
+        $annotations = $reader->parse($class);
 
-        $this->assertEquals(4, count($fields), '4 fields are mapped');
+        $this->assertArrayHasKey('fields', $annotations, 'parse returned fields array');
+        $this->assertEquals(4, count($annotations['fields']), '4 fields are mapped');
     }
 
     public function testGetFields_OneFieldsOneTypes()
     {
         $reader = new AnnotationReader();
 
-        $fields = $reader->getFields(new ValidTestEntityNoTypes());
+        $class = new ValidTestEntityNoTypes();
+        $annotations = $reader->parse($class);
 
-        $this->assertEquals(1, count($fields), '1 fields are mapped');
+        $this->assertArrayHasKey('fields', $annotations, 'parse returned fields array');
+        $this->assertEquals(1, count($annotations['fields']), '1 fields are mapped');
 
-        $field = $fields[0];
-        $this->assertTrue($field instanceof Field);
+        $field = $annotations['fields']['title'];
+        $this->assertInstanceOf('\FS\SolrBundle\Doctrine\Annotation\Field', $field);
         $this->assertEquals('title', $field->getNameWithAlias());
     }
 
@@ -59,55 +82,59 @@ class AnnotationReaderTest extends \PHPUnit_Framework_TestCase
     {
         $reader = new AnnotationReader();
 
-        $reader->getIdentifier(new NotIndexedEntity());
+        $class = new NotIndexedEntity();
+        $reader->parse($class);
     }
 
     public function testGetIdentifier()
     {
         $reader = new AnnotationReader();
 
-        $id = $reader->getIdentifier(new ValidTestEntity());
+        $class = new ValidTestEntity();
+        $annotations = $reader->parse($class);
 
-        $this->assertEquals('id', $id->name);
-    }
-
-    public function testGetFieldMapping_ThreeMappingsAndId()
-    {
-        $reader = new AnnotationReader();
-
-        $fields = $reader->getFieldMapping(new ValidTestEntity());
-
-        $this->assertEquals(5, count($fields), 'five fields are mapped');
-        $this->assertTrue(array_key_exists('title', $fields));
-        $this->assertTrue(array_key_exists('id', $fields));
+        $this->assertArrayHasKey('identifier', $annotations, 'parse returned identifier array');
+        $this->assertEquals($annotations['identifier'], 'id');
     }
 
     public function testGetRepository_ValidRepositoryDeclared()
     {
         $reader = new AnnotationReader();
-        $repository = $reader->getRepository(new EntityWithRepository());
+
+        $class = new EntityWithRepository();
+        $annotations = $reader->parse($class);
+
+        $this->assertArrayHasKey('repository', $annotations, 'parse returned repository array');
 
         $expected = 'FS\SolrBundle\Tests\Doctrine\Annotation\Entities\ValidEntityRepository';
-        $actual = $repository;
+        $actual = $annotations['repository'];
         $this->assertEquals($expected, $actual, 'wrong declared repository');
     }
 
     public function testGetRepository_NoRepositoryAttributSet()
     {
         $reader = new AnnotationReader();
-        $repository = $reader->getRepository(new ValidTestEntity());
+
+        $class = new ValidTestEntity();
+        $annotations = $reader->parse($class);
+
+        $this->assertArrayHasKey('repository', $annotations, 'parse returned repository array');
 
         $expected = '';
-        $actual = $repository;
+        $actual = $annotations['repository'];
         $this->assertEquals($expected, $actual, 'no repository was declared');
     }
 
     public function testGetBoost()
     {
         $reader = new AnnotationReader();
-        $boost = $reader->getEntityBoost(new ValidTestEntity());
 
-        $this->assertEquals(1, $boost);
+        $class = new ValidTestEntity();
+        $annotations = $reader->parse($class);
+
+        $this->assertArrayHasKey('boost', $annotations, 'parse returned boost array');
+
+        $this->assertEquals(1, $annotations['boost']);
     }
 
     public function testGetBoost_BoostNotNumeric()
@@ -115,7 +142,11 @@ class AnnotationReaderTest extends \PHPUnit_Framework_TestCase
         $reader = new AnnotationReader();
 
         try {
-            $boost = $reader->getEntityBoost(new ValidTestEntityWithInvalidBoost());
+
+            $class = new ValidTestEntityWithInvalidBoost();
+            $annotations = $reader->parse($class);
+
+            $this->assertArrayHasKey('boost', $annotations, 'parse returned boost array');
 
             $this->fail();
         } catch (\InvalidArgumentException $e) {
@@ -129,33 +160,49 @@ class AnnotationReaderTest extends \PHPUnit_Framework_TestCase
     public function testGetBoost_BoostIsNumberic()
     {
         $reader = new AnnotationReader();
-        $boost = $reader->getEntityBoost(new ValidTestEntityFloatBoost());
 
-        $this->assertEquals(1.4, $boost);
+        $class = new ValidTestEntityFloatBoost();
+        $annotations = $reader->parse($class);
+
+        $this->assertArrayHasKey('boost', $annotations, 'parse returned boost array');
+
+        $this->assertEquals(1.4, $annotations['boost']);
     }
 
     public function testGetBoost_BoostIsNull()
     {
         $reader = new AnnotationReader();
-        $boost = $reader->getEntityBoost(new ValidTestEntityNoBoost());
 
-        $this->assertEquals(null, $boost);
+        $class = new ValidTestEntityNoBoost();
+        $annotations = $reader->parse($class);
+
+        $this->assertArrayHasKey('boost', $annotations, 'parse returned boost array');
+
+        $this->assertEquals(null, $annotations['boost']);
     }
 
     public function testGetCallback_CallbackDefined()
     {
         $reader = new AnnotationReader();
-        $callback = $reader->getSynchronizationCallback(new ValidTestEntityFiltered());
 
-        $this->assertEquals('shouldBeIndex', $callback);
+        $class = new ValidTestEntityFiltered();
+        $annotations = $reader->parse($class);
+
+        $this->assertArrayHasKey('synchronization_callback', $annotations, 'parse returned synchronization_callback array');
+
+        $this->assertEquals('shouldBeIndex', $annotations['synchronization_callback']);
     }
 
     public function testGetCallback_NoCallbackDefined()
     {
         $reader = new AnnotationReader();
-        $callback = $reader->getSynchronizationCallback(new ValidTestEntity());
 
-        $this->assertEquals('', $callback);
+        $class = new ValidTestEntity();
+        $annotations = $reader->parse($class);
+
+        $this->assertArrayHasKey('synchronization_callback', $annotations, 'parse returned synchronization_callback array');
+
+        $this->assertEquals('', $annotations['synchronization_callback']);
     }
 
     /**
@@ -164,13 +211,16 @@ class AnnotationReaderTest extends \PHPUnit_Framework_TestCase
     public function numericFieldTypeAreSupported()
     {
         $reader = new AnnotationReader();
-        $fields = $reader->getFields(new ValidTestEntityNumericFields());
 
-        $this->assertEquals(4, count($fields));
+        $class = new ValidTestEntityNumericFields();
+        $annotations = $reader->parse($class);
+
+        $this->assertArrayHasKey('fields', $annotations, 'parse returned fields array');
+        $this->assertEquals(4, count($annotations['fields']));
 
         $expectedFields = array('integer_i', 'double_d', 'float_f', 'long_l');
         $actualFields = array();
-        foreach ($fields as $field) {
+        foreach ($annotations['fields'] as $field) {
             $actualFields[] = $field->getNameWithAlias();
         }
 

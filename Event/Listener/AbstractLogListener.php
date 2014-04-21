@@ -23,11 +23,12 @@ abstract class AbstractLogListener
 
     /**
      * @param MetaInformation $metaInformation
+     *
      * @return string
      */
     protected function createDocumentNameWithId(MetaInformation $metaInformation)
     {
-        return $metaInformation->getDocumentName() . ':' . $metaInformation->getEntityId();
+        return $metaInformation->getDocumentName();
     }
 
     /**

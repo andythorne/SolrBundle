@@ -11,17 +11,11 @@ abstract class AbstractDocumentCommand
 {
 
     /**
+     * @param object          $entity
      * @param MetaInformation $meta
+     *
      * @return Document
      */
-    public function createDocument(MetaInformation $meta)
-    {
-        $document = new Document();
+    abstract public function createDocument($entity, MetaInformation $meta);
 
-        $document->addField('id', $meta->getEntityId());
-        $document->addField('document_name_s', $meta->getDocumentName());
-        $document->setBoost($meta->getBoost());
-
-        return $document;
-    }
 }

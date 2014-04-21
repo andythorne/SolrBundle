@@ -2,6 +2,8 @@
 namespace FS\SolrBundle\Tests\Doctrine\Mapper;
 
 use FS\SolrBundle\Doctrine\Mapper\MetaInformation;
+use FS\SolrBundle\Tests\Doctrine\Annotation\Entities\ValidTestEntityFiltered;
+use FS\SolrBundle\Tests\Util\MetaTestInformationFactory;
 
 /**
  *
@@ -20,32 +22,18 @@ class MetaInformationTest extends \PHPUnit_Framework_TestCase
 
     public function testHasField_FieldExists()
     {
-        $value1 = $this->createFieldObject('field1', 'oldfieldvalue');
-        $value2 = $this->createFieldObject('field2', true);
+        $entity = MetaTestInformationFactory::getEntity();
+        $meta = MetaTestInformationFactory::getMetaInformation($entity);
 
-        $fields = array(
-            'field1' => $value1,
-            'field2' => $value2
-        );
-
-        $information = new MetaInformation();
-        $information->setFields($fields);
-
-        $this->assertTrue($information->hasField('field2'), 'metainformation should have field2');
+        $this->assertTrue($meta->hasField('text'), 'metainformation should have text');
     }
 
     public function testHasField_FieldNotExists()
     {
-        $value1 = $this->createFieldObject('field1', 'oldfieldvalue');
+        $entity = MetaTestInformationFactory::getEntity();
+        $meta = MetaTestInformationFactory::getMetaInformation($entity);
 
-        $fields = array(
-            'field1' => $value1,
-        );
-
-        $information = new MetaInformation();
-        $information->setFields($fields);
-
-        $this->assertFalse($information->hasField('field2'), 'unknown field field2');
+        $this->assertFalse($meta->hasField('text2'), 'metainformation should have text2');
     }
 
     public function testSetFieldValue()
@@ -58,28 +46,32 @@ class MetaInformationTest extends \PHPUnit_Framework_TestCase
             'field2' => $value2
         );
 
-        $information = new MetaInformation();
-        $information->setFields($fields);
+        $entity = MetaTestInformationFactory::getEntity();
+        $meta = MetaTestInformationFactory::getMetaInformation($entity);
 
         $expectedValue = 'newFieldValue';
-        $information->setFieldValue('field2', $expectedValue);
+        $entity->setText($expectedValue);
 
-        $this->assertEquals($expectedValue, $information->getField('field2')->value, 'field2 should have new value');
+        $values = $meta->extractSolrValues($entity);
+
+        $this->assertArrayHasKey('text', $values, 'values should have key text');
+        $this->assertEquals($expectedValue, $values['text'], 'text should have new value');
     }
 
     public function testHasCallback_CallbackSet()
     {
-        $information = new MetaInformation();
-        $information->setSynchronizationCallback('function');
+        $entity = new ValidTestEntityFiltered();
+        $meta = MetaTestInformationFactory::getMetaInformation($entity);
 
-        $this->assertTrue($information->hasSynchronizationFilter(), 'has callback');
+        $this->assertTrue($meta->hasSynchronizationFilter(), 'has callback');
     }
 
     public function testHasCallback_NoCallbackSet()
     {
-        $information = new MetaInformation();
+        $entity = MetaTestInformationFactory::getEntity();
+        $meta = MetaTestInformationFactory::getMetaInformation($entity);
 
-        $this->assertFalse($information->hasSynchronizationFilter(), 'has no callback');
+        $this->assertFalse($meta->hasSynchronizationFilter(), 'has no callback');
     }
 }
 

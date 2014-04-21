@@ -10,5 +10,8 @@ use FS\SolrBundle\Doctrine\Annotation as Solr;
  */
 class EntityWithInvalidRepository
 {
-
+    /**
+     * @Solr\Id
+     */
+    private $id;
 }

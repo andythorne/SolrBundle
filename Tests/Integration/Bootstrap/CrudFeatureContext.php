@@ -32,7 +32,8 @@ class CrudFeatureContext extends BehatContext
      */
     public function iAddThisEntityToSolr()
     {
-        $this->solr->addDocument($this->entity);
+        $repo = $this->solr->getRepository($this->entity);
+        $repo->insert($this->entity);
     }
 
     /**
@@ -87,7 +88,8 @@ class CrudFeatureContext extends BehatContext
      */
     public function iDeleteTheEntity()
     {
-        $this->solr->removeDocument($this->entity);
+        $repo = $this->solr->getRepository($this->entity);
+        $repo->delete($this->entity);
     }
 
     /**

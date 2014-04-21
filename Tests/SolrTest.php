@@ -26,8 +26,11 @@ use Solarium\QueryType\Update\Query\Document\Document;
  */
 class SolrTest extends \PHPUnit_Framework_TestCase
 {
-
+    /**
+     * @var \FS\SolrBundle\Doctrine\Mapper\MetaInformationFactory
+     */
     private $metaFactory = null;
+
     private $config = null;
     private $commandFactory = null;
     private $eventDispatcher = null;
@@ -101,36 +104,23 @@ class SolrTest extends \PHPUnit_Framework_TestCase
             ->with($deleteQuery);
     }
 
-    private function setupMetaFactoryLoadOneCompleteInformation($metaInformation = null)
+    private function setupMetaFactoryLoadOneCompleteInformation($entity = null)
     {
-        if (null === $metaInformation) {
-            $metaInformation = MetaTestInformationFactory::getMetaInformation();
+        if (null === $entity) {
+            $entity = MetaTestInformationFactory::getEntity();
         }
+
+        $metaInformation = MetaTestInformationFactory::getMetaInformation($entity);
 
         $this->metaFactory->expects($this->once())
             ->method('loadInformation')
             ->will($this->returnValue($metaInformation));
     }
 
-    public function testCreateQuery_ValidEntity()
-    {
-        $this->setupMetaFactoryLoadOneCompleteInformation();
-
-        $solr = new Solr($this->solrClientFake, $this->commandFactory, $this->eventDispatcher, $this->metaFactory, $this->mapper);
-        $query = $solr->createQuery('FSBlogBundle:ValidTestEntity');
-
-        $this->assertTrue($query instanceof SolrQuery);
-        $this->assertEquals(4, count($query->getMappedFields()));
-
-    }
-
     public function testGetRepository_UserdefinedRepository()
     {
-        $metaInformation = new MetaInformation();
-        $metaInformation->setClassName(get_class(new EntityWithRepository()));
-        $metaInformation->setRepository('FS\SolrBundle\Tests\Doctrine\Annotation\Entities\ValidEntityRepository');
-
-        $this->setupMetaFactoryLoadOneCompleteInformation($metaInformation);
+        $e = new EntityWithRepository();
+        $this->setupMetaFactoryLoadOneCompleteInformation($e);
 
         $solr = new Solr($this->solrClientFake, $this->commandFactory, $this->eventDispatcher, $this->metaFactory, $this->mapper);
         $actual = $solr->getRepository('Tests:EntityWithRepository');
@@ -138,16 +128,10 @@ class SolrTest extends \PHPUnit_Framework_TestCase
         $this->assertTrue($actual instanceof ValidEntityRepository);
     }
 
-    /**
-     * @expectedException RuntimeException
-     */
     public function testGetRepository_UserdefinedInvalidRepository()
     {
-        $metaInformation = new MetaInformation();
-        $metaInformation->setClassName(get_class(new EntityWithRepository()));
-        $metaInformation->setRepository('FS\SolrBundle\Tests\Doctrine\Annotation\Entities\InvalidEntityRepository');
-
-        $this->setupMetaFactoryLoadOneCompleteInformation($metaInformation);
+        $e = new EntityWithRepository();
+        $this->setupMetaFactoryLoadOneCompleteInformation($e);
 
         $solr = new Solr($this->solrClientFake, $this->commandFactory, $this->eventDispatcher, $this->metaFactory, $this->mapper);
         $solr->getRepository('Tests:EntityWithInvalidRepository');
@@ -165,7 +149,10 @@ class SolrTest extends \PHPUnit_Framework_TestCase
         $this->setupMetaFactoryLoadOneCompleteInformation();
 
         $solr = new Solr($this->solrClientFake, $this->commandFactory, $this->eventDispatcher, $this->metaFactory, $this->mapper);
-        $solr->addDocument(new ValidTestEntity());
+
+        $entity = new ValidTestEntity();
+        $repo = $solr->getRepository(get_class($entity));
+        $repo->insert($entity);
     }
 
     public function testUpdateDocument()
@@ -180,7 +167,9 @@ class SolrTest extends \PHPUnit_Framework_TestCase
         $this->setupMetaFactoryLoadOneCompleteInformation();
 
         $solr = new Solr($this->solrClientFake, $this->commandFactory, $this->eventDispatcher, $this->metaFactory, $this->mapper);
-        $solr->updateDocument(new ValidTestEntity());
+        $entity = new ValidTestEntity();
+        $repo = $solr->getRepository(get_class($entity));
+        $repo->update($entity);
     }
 
     public function testRemoveDocument()
@@ -197,7 +186,10 @@ class SolrTest extends \PHPUnit_Framework_TestCase
             ->will($this->returnValue(new DocumentStub()));
 
         $solr = new Solr($this->solrClientFake, $this->commandFactory, $this->eventDispatcher, $this->metaFactory, $this->mapper);
-        $solr->removeDocument(new ValidTestEntity());
+
+        $entity = new ValidTestEntity();
+        $repo = $solr->getRepository(get_class($entity));
+        $repo->delete($entity);
     }
 
     public function testClearIndex()
@@ -239,7 +231,7 @@ class SolrTest extends \PHPUnit_Framework_TestCase
 
         $document = new Document();
         $document->addField('document_name_s', 'name');
-        $query = new FindByDocumentNameQuery();
+        $query = new SolrQuery();
         $query->setDocument($document);
 
         $entities = $solr->query($query);
@@ -256,9 +248,9 @@ class SolrTest extends \PHPUnit_Framework_TestCase
 
         $document = new Document();
         $document->addField('document_name_s', 'name');
-        $query = new FindByDocumentNameQuery();
+        $query = new SolrQuery();
         $query->setDocument($document);
-        $query->setEntity(new ValidTestEntity());
+
 
         $entities = $solr->query($query);
         $this->assertEquals(1, count($entities));
@@ -272,13 +264,13 @@ class SolrTest extends \PHPUnit_Framework_TestCase
             ->method('dispatch');
 
         $entity = new ValidTestEntityFiltered();
-
-        $information = new MetaInformation();
-        $information->setSynchronizationCallback('shouldBeIndex');
-        $this->setupMetaFactoryLoadOneCompleteInformation($information);
+        $this->setupMetaFactoryLoadOneCompleteInformation($entity);
 
         $solr = new Solr($this->solrClientFake, $this->commandFactory, $this->eventDispatcher, $this->metaFactory, $this->mapper);
-        $solr->addDocument($entity);
+
+        $entity = new ValidTestEntityFiltered();
+        $repo = $solr->getRepository(get_class($entity));
+        $repo->insert($entity);
 
         $this->assertTrue($entity->getShouldBeIndexedWasCalled(), 'filter method was not called');
     }
@@ -292,15 +284,13 @@ class SolrTest extends \PHPUnit_Framework_TestCase
 
         $entity = new ValidTestEntityFiltered();
         $entity->shouldIndex = true;
-
-        $information = MetaTestInformationFactory::getMetaInformation();
-        $information->setSynchronizationCallback('shouldBeIndex');
-        $this->setupMetaFactoryLoadOneCompleteInformation($information);
+        $this->setupMetaFactoryLoadOneCompleteInformation($entity);
 
         $this->mapOneDocument();
 
         $solr = new Solr($this->solrClientFake, $this->commandFactory, $this->eventDispatcher, $this->metaFactory, $this->mapper);
-        $solr->addDocument($entity);
+        $repo = $solr->getRepository(get_class($entity));
+        $repo->insert($entity);
 
         $this->assertTrue($entity->getShouldBeIndexedWasCalled(), 'filter method was not called');
     }
@@ -312,15 +302,14 @@ class SolrTest extends \PHPUnit_Framework_TestCase
         $this->eventDispatcher->expects($this->never())
             ->method('dispatch');
 
-        $information = MetaTestInformationFactory::getMetaInformation();
-        $information->setSynchronizationCallback('shouldBeIndex');
-        $this->setupMetaFactoryLoadOneCompleteInformation($information);
+        $entity = new ValidTestEntityFiltered();
+        $entity->shouldIndex = false;
+        $this->setupMetaFactoryLoadOneCompleteInformation($entity);
 
         $solr = new Solr($this->solrClientFake, $this->commandFactory, $this->eventDispatcher, $this->metaFactory, $this->mapper);
         try {
-            $solr->addDocument(new InvalidTestEntityFiltered());
-
-            $this->fail('BadMethodCallException expected');
+            $repo = $solr->getRepository(get_class($entity));
+            $repo->insert($entity);
         } catch (\BadMethodCallException $e) {
             $this->assertTrue(true);
         }

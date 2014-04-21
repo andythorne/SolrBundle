@@ -32,15 +32,15 @@ Bundle
 	A. Via composer, add in your composer.json
 
         "require": {
-            // ...  
+            // ...
             "floriansemm/solr-bundle": "dev-master"
         }
-        
+
 	B.  or manually, in app/autoload.php
-	
+
 	i. In symfony 2.1.4 (supposing you clone the bundle in vendor/floriansemm/solr-bundle/FS/, making available vendor/floriansemm/solr-bundle/FS/SolrBundle/FSSolrBundle.php)
 
-        $loader->add('FS\\SolrBundle', array(__DIR__.'/../vendor/floriansemm/solr-bundle'));		
+        $loader->add('FS\\SolrBundle', array(__DIR__.'/../vendor/floriansemm/solr-bundle'));
 
 	ii. in older version it could be
 
@@ -66,7 +66,7 @@ You have to setup the connection options
       clients:
         default:
           endpoints: [default]
-          
+
 With this config you have access to the service `solr.client.default`. If you have more client you can access them with the call `solr.client.clientname`
 
 # Usage #
@@ -79,7 +79,7 @@ To put an entity to the index, you must add some annotations to your entity:
 
 	// ....
 	use FS\SolrBundle\Doctrine\Annotation as Solr;
-	
+
 	/**
 	 * @Solr\Document(repository="Full\Qualified\Class\Name")
 	 * @ORM\Table()
@@ -104,7 +104,7 @@ To put an entity to the index, you must add some annotations to your entity:
 		private $title = '';
 
 		/**
-		* 
+		*
 		* @Solr\Field(type="string")
 		*
 		* @ORM\Column(name="text", type="text")
@@ -154,7 +154,7 @@ In some cases a entity should not be index. For this you have the `Synchronizati
 		}
 	}
 
-The callback property specifies an callable function, which decides whether the should index or not. 	
+The callback property specifies an callable function, which decides whether the should index or not.
 
 
 ## Solr field configuration
@@ -188,7 +188,7 @@ To query the index you have to call some services.
     $query->addSearchTerm('title', 'my title');
 
     $result = $result = $query->getResult();
-		
+
 The $result array contains all found entities. The solr-service does all mappings from SolrDocument
 to your entity for you.
 
@@ -254,7 +254,7 @@ like Doctrine-Repositories:
 
 	$myRepository = $this->get('solr')->getRepository('AcmeDemoBundle:Post');
 	$result = $myRepository->mySpecialFindMethod();
-	
+
 If you haven't declared a concrete repository in your entity and you calling `$this->get('solr')->getRepository('AcmeDemoBundle:Post')`, you will
 get an instance of `FS\SolrBundle\Repository\Repository`.
 

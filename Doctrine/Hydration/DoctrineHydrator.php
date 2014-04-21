@@ -2,49 +2,84 @@
 
 namespace FS\SolrBundle\Doctrine\Hydration;
 
+use Doctrine\Bundle\DoctrineBundle\Registry;
+use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\Query;
+use Doctrine\ORM\QueryBuilder;
+use FS\SolrBundle\Doctrine\Annotation\CollectionField;
+use FS\SolrBundle\Doctrine\Annotation\EntityField;
 use FS\SolrBundle\Doctrine\Mapper\MetaInformation;
 use Symfony\Bridge\Doctrine\RegistryInterface;
 
-class DoctrineHydrator implements Hydrator
+class DoctrineHydrator extends AbstractMergableHydrator implements HydratorInterface
 {
 
     /**
-     * @var RegistryInterface
+     * @var Registry
      */
     private $doctrine;
 
     /**
-     * @var Hydrator
-     */
-    private $valueHydrator;
-
-    /**
      * @param RegistryInterface $doctrine
-     * @param Hydrator $valueHydrator
      */
-    public function __construct(RegistryInterface $doctrine, Hydrator $valueHydrator)
+    public function __construct(RegistryInterface $doctrine)
     {
         $this->doctrine = $doctrine;
-        $this->valueHydrator = $valueHydrator;
     }
 
     /**
-     * @param $document
-     * @param MetaInformation $metaInformation
-     * @return object
+     * @inheritdoc
      */
-    public function hydrate($document, MetaInformation $metaInformation)
+    public function supports($method)
     {
-        $entityId = $document->id;
-        $doctrineEntity = $this->doctrine
-            ->getManager()
-            ->getRepository($metaInformation->getClassName())
-            ->find($entityId);
+        return $method === HydrationModes::HYDRATE_DOCTRINE;
+    }
 
-        if ($doctrineEntity !== null) {
-            $metaInformation->setEntity($doctrineEntity);
+    /**
+     * @inheritdoc
+     */
+    public function hydrate($documents, MetaInformation $meta, QueryBuilder $qb = null, $hydration = Query::HYDRATE_OBJECT)
+    {
+        $id       = $meta->getIdentifier();
+        $entities = array();
+
+        foreach($documents as $document)
+        {
+            $entities[$document->id] = $document;
         }
 
-        return $this->valueHydrator->hydrate($document, $metaInformation);
+        $ids = array_keys($entities);
+
+        if(!($qb instanceof QueryBuilder))
+        {
+            /** @var EntityManager $em */
+            $em = $this->doctrine->getManager();
+
+            $qb = $em->createQueryBuilder();
+
+            $qb->select('e')
+                ->from($meta->getClassName(), 'e');
+
+            // fetch collections and entities as well
+            foreach($meta->getFields() as $i=>$field)
+            {
+                if($field instanceof EntityField || $field instanceof CollectionField)
+                {
+                    $f = "f{$i}";
+                    $qb->leftJoin('e.'.$field->field, $f)->addSelect($f);
+                }
+            }
+
+        }
+
+        $aliases = $qb->getRootAliases();
+
+        $qb->andWhere($aliases[0].'.'.$id->name.' IN (:ids)')
+           ->setParameter('ids', $ids);
+
+        $doctrineEntities = $qb->getQuery()->getResult($hydration);
+
+        return $doctrineEntities;
+
     }
 }

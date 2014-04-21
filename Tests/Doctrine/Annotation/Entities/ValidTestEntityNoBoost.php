@@ -9,5 +9,9 @@ use FS\SolrBundle\Doctrine\Annotation as Solr;
  */
 class ValidTestEntityNoBoost
 {
+    /**
+     * @Solr\Id
+     */
+    private $id;
 }
 

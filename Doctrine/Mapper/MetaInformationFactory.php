@@ -43,31 +43,18 @@ class MetaInformationFactory
 
     /**
      * @param string|object entityAlias
+     *
+     * @throws \RuntimeException
      * @return MetaInformation
      */
     public function loadInformation($entity)
     {
-
         $className = $this->getClass($entity);
 
-        if (!is_object($entity)) {
-            $entity = new $className;
-        }
+        $annotations = $this->annotationReader->parse($className);
 
-        if (!$this->annotationReader->hasDocumentDeclaration($entity)) {
-            throw new \RuntimeException(sprintf('no declaration for document found in entity %s', $className));
-        }
-
-        $metaInformation = new MetaInformation();
-        $metaInformation->setEntity($entity);
-        $metaInformation->setClassName($className);
+        $metaInformation = new MetaInformation($className, $annotations);
         $metaInformation->setDocumentName($this->getDocumentName($className));
-        $metaInformation->setFieldMapping($this->annotationReader->getFieldMapping($entity));
-        $metaInformation->setFields($this->annotationReader->getFields($entity));
-        $metaInformation->setRepository($this->annotationReader->getRepository($entity));
-        $metaInformation->setIdentifier($this->annotationReader->getIdentifier($entity));
-        $metaInformation->setBoost($this->annotationReader->getEntityBoost($entity));
-        $metaInformation->setSynchronizationCallback($this->annotationReader->getSynchronizationCallback($entity));
 
         return $metaInformation;
     }

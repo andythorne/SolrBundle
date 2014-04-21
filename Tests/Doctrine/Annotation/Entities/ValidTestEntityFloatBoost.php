@@ -9,11 +9,9 @@ use FS\SolrBundle\Doctrine\Annotation as Solr;
  */
 class ValidTestEntityFloatBoost
 {
-
     /**
      * @Solr\Id
      */
     private $id;
-
 }
 

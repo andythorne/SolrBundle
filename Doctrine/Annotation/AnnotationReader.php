@@ -2,6 +2,7 @@
 namespace FS\SolrBundle\Doctrine\Annotation;
 
 use Doctrine\Common\Annotations\AnnotationReader as Reader;
+use FS\SolrBundle\Doctrine\Annotation\Exception\DocumentAnnotationNotFoundException;
 
 class AnnotationReader
 {
@@ -13,25 +14,65 @@ class AnnotationReader
 
     const DOCUMENT_CLASS = 'FS\SolrBundle\Doctrine\Annotation\Document';
     const FIELD_CLASS = 'FS\SolrBundle\Doctrine\Annotation\Field';
+    const META_FIELD_CLASS = 'FS\SolrBundle\Doctrine\Annotation\MetaFields';
     const FIELD_IDENTIFIER_CLASS = 'FS\SolrBundle\Doctrine\Annotation\Id';
     const DOCUMENT_INDEX_CLASS = 'FS\SolrBundle\Doctrine\Annotation\Document';
     const SYNCHRONIZATION_FILTER_CLASS = 'FS\SolrBundle\Doctrine\Annotation\SynchronizationFilter';
 
+    /**
+     *
+     */
     public function __construct()
     {
         $this->reader = new Reader();
     }
 
+
+    /**
+     * @param object|string $entity
+     *
+     * @return array
+     */
+    public function parse($entity)
+    {
+        $reflectionClass = new \ReflectionClass($entity);
+
+        if(!$this->hasDocumentDeclaration($reflectionClass))
+        {
+            throw new DocumentAnnotationNotFoundException($reflectionClass->getName());
+        }
+
+        return array(
+            'identifier'               => $this->getIdentifierAnnotations($reflectionClass),
+            'fields'                   => $this->getFieldAnnotations($reflectionClass),
+            'boost'                    => $this->getEntityBoostAnnotations($reflectionClass),
+            'repository'               => $this->getRepositoryAnnotations($reflectionClass),
+            'synchronization_callback' => $this->getSynchronizationCallback($reflectionClass),
+        );
+
+
+    }
+
+    /**
+     * @param \ReflectionClass $reflectionClass
+     * @return boolean
+     */
+    public function hasDocumentDeclaration(\ReflectionClass $reflectionClass)
+    {
+        $annotation = $this->reader->getClassAnnotation($reflectionClass, self::DOCUMENT_INDEX_CLASS);
+
+        return $annotation !== null;
+    }
+
     /**
      * reads the entity and returns a set of annotations
      *
-     * @param string $entity
+     * @param \ReflectionClass $reflectionClass
      * @param string $type
      * @return array
      */
-    private function getPropertiesByType($entity, $type)
+    private function getPropertiesByType(\ReflectionClass $reflectionClass, $type)
     {
-        $reflectionClass = new \ReflectionClass($entity);
         $properties = $reflectionClass->getProperties();
 
         $fields = array();
@@ -43,32 +84,55 @@ class AnnotationReader
             }
 
             $property->setAccessible(true);
-            $annotation->value = $property->getValue($entity);
-            $annotation->name = $property->getName();
+            $annotation->field = $property->getName();
+            $annotation->name = $annotation->name ?: $property->getName();
 
             $fields[] = $annotation;
+
         }
 
         return $fields;
     }
 
     /**
-     * @param object $entity
+     * @param \ReflectionClass $reflectionClass
+     *
      * @return array
      */
-    public function getFields($entity)
+    private function getFieldAnnotations(\ReflectionClass $reflectionClass)
     {
-        return $this->getPropertiesByType($entity, self::FIELD_CLASS);
+        $fields = array();
+
+        $definedFields = $this->getPropertiesByType($reflectionClass, self::FIELD_CLASS);
+        foreach($definedFields as $field)
+        {
+            $fields[$field->name] = $field;
+        }
+
+
+        $metaFields = $this->reader->getClassAnnotation($reflectionClass, self::META_FIELD_CLASS);
+        if($metaFields)
+        {
+            $fieldClass = self::FIELD_CLASS;
+            foreach($metaFields->fields as $field)
+            {
+                /** @var Field $field */
+                $newField = new $fieldClass($field);
+                $fields[$newField->name] = $newField;
+            }
+        }
+
+        return $fields;
     }
 
     /**
-     * @param object $entity
+     * @param \ReflectionClass $reflectionClass
      * @throws \InvalidArgumentException if the boost value is not numeric
      * @return number
      */
-    public function getEntityBoost($entity)
+    private function getEntityBoostAnnotations(\ReflectionClass $reflectionClass)
     {
-        $annotation = $this->getClassAnnotation($entity, self::DOCUMENT_INDEX_CLASS);
+        $annotation = $this->reader->getClassAnnotation($reflectionClass, self::DOCUMENT_INDEX_CLASS);
 
         if (!$annotation instanceof Document) {
             return 0;
@@ -77,35 +141,35 @@ class AnnotationReader
         try {
             $boostValue = $annotation->getBoost();
         } catch (\InvalidArgumentException $e) {
-            throw new \InvalidArgumentException(sprintf($e->getMessage() . ' for entity %s', get_class($entity)));
+            throw new \InvalidArgumentException(sprintf($e->getMessage() . ' for entity %s', $reflectionClass->getName()));
         }
 
         return $boostValue;
     }
 
     /**
-     * @param object $entity
+     * @param \ReflectionClass $reflectionClass
      * @return Type
      * @throws \RuntimeException
      */
-    public function getIdentifier($entity)
+    private function getIdentifierAnnotations(\ReflectionClass $reflectionClass)
     {
-        $id = $this->getPropertiesByType($entity, self::FIELD_IDENTIFIER_CLASS);
+        $id = $this->getPropertiesByType($reflectionClass, self::FIELD_IDENTIFIER_CLASS);
 
         if (count($id) == 0) {
-            throw new \RuntimeException('no identifer declared in entity ' . get_class($entity));
+            throw new \RuntimeException('no identifer declared in entity ' . $reflectionClass->getName());
         }
 
         return reset($id);
     }
 
     /**
-     * @param object $entity
+     * @param \ReflectionClass $reflectionClass
      * @return string classname of repository
      */
-    public function getRepository($entity)
+    private function getRepositoryAnnotations(\ReflectionClass $reflectionClass)
     {
-        $annotation = $this->getClassAnnotation($entity, self::DOCUMENT_CLASS);
+        $annotation = $this->reader->getClassAnnotation($reflectionClass, self::DOCUMENT_CLASS);
 
         if ($annotation instanceof Document) {
             return $annotation->repository;
@@ -115,63 +179,17 @@ class AnnotationReader
     }
 
     /**
-     * returns all fields and field for idendification
-     *
-     * @param object $entity
-     * @return array
-     */
-    public function getFieldMapping($entity)
-    {
-        $fields = $this->getPropertiesByType($entity, self::FIELD_CLASS);
-
-        $mapping = array();
-        foreach ($fields as $field) {
-            if ($field instanceof Field) {
-                $mapping[$field->getNameWithAlias()] = $field->name;
-            }
-        }
-
-        $id = $this->getIdentifier($entity);
-        $mapping['id'] = $id->name;
-
-        return $mapping;
-    }
-
-    /**
-     * @param object $entity
-     * @return boolean
-     */
-    public function hasDocumentDeclaration($entity)
-    {
-        $annotation = $this->getClassAnnotation($entity, self::DOCUMENT_INDEX_CLASS);
-
-        return $annotation !== null;
-    }
-
-    /**
-     * @param string $entity
+     * @param \ReflectionClass $reflectionClass
      * @return string
      */
-    public function getSynchronizationCallback($entity)
+    private function getSynchronizationCallback(\ReflectionClass $reflectionClass)
     {
-        $annotation = $this->getClassAnnotation($entity, self::SYNCHRONIZATION_FILTER_CLASS);
+        $annotation = $this->reader->getClassAnnotation($reflectionClass, self::SYNCHRONIZATION_FILTER_CLASS);
 
         if (!$annotation) {
             return '';
         }
 
         return $annotation->callback;
-    }
-
-    /**
-     * @param string $entity
-     * @param string $annotation
-     * @return string
-     */
-    private function getClassAnnotation($entity, $annotation)
-    {
-        $reflectionClass = new \ReflectionClass($entity);
-
-        return $this->reader->getClassAnnotation($reflectionClass, $annotation);
     }
 }

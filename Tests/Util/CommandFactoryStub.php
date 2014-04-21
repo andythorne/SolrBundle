@@ -16,7 +16,6 @@ class CommandFactoryStub
     {
         $commandFactory = new CommandFactory();
         $commandFactory->add(new MapAllFieldsCommand(), 'all');
-        $commandFactory->add(new MapIdentifierCommand(), 'identifier');
 
         return $commandFactory;
     }

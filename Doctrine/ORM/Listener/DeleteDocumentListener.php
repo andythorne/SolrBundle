@@ -2,6 +2,7 @@
 namespace FS\SolrBundle\Doctrine\ORM\Listener;
 
 use Doctrine\ORM\Event\LifecycleEventArgs;
+use FS\SolrBundle\Repository\Exception\RepositoryNotFoundException;
 use FS\SolrBundle\Solr;
 
 class DeleteDocumentListener
@@ -28,7 +29,9 @@ class DeleteDocumentListener
         $entity = $args->getEntity();
 
         try {
-            $this->solr->removeDocument($entity);
+            $repo = $this->solr->getRepository($entity);
+            $repo->delete($entity);
+        } catch(RepositoryNotFoundException $e){
         } catch (\RuntimeException $e) {
         }
     }

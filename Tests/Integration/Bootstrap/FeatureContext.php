@@ -30,8 +30,10 @@ class FeatureContext extends BehatContext
         $autoload =  __DIR__ . '/../vendor/autoload.php';
         if (file_exists($autoload)) {
             require_once $autoload;
-        } else {
+        } elseif(file_exists('vendor/autoload.php')) {
             require_once 'vendor/autoload.php';
+        } else {
+            require_once __DIR__.'/../../../../../../../autoload.php';
         }
 
         $this->useContext('crud', new CrudFeatureContext());
@@ -83,15 +85,10 @@ class FeatureContext extends BehatContext
     {
         $registry = new \FS\SolrBundle\Tests\Integration\DoctrineRegistryFake();
 
-        $entityMapper = new \FS\SolrBundle\Doctrine\Mapper\EntityMapper(
-            new \FS\SolrBundle\Doctrine\Hydration\DoctrineHydrator(
-                $registry,
-                new \FS\SolrBundle\Doctrine\Hydration\ValueHydrator()
-            ),
-            new \FS\SolrBundle\Doctrine\Hydration\IndexHydrator(
-                new \FS\SolrBundle\Doctrine\Hydration\ValueHydrator()
-            )
-        );
+        $entityMapper = new \FS\SolrBundle\Doctrine\Mapper\EntityMapper();
+
+        $entityMapper->addHydrator( new \FS\SolrBundle\Doctrine\Hydration\DoctrineHydrator($registry));
+        $entityMapper->addHydrator( new \FS\SolrBundle\Doctrine\Hydration\IndexHydrator());
 
         return $entityMapper;
     }
@@ -103,7 +100,6 @@ class FeatureContext extends BehatContext
     {
         $factory = new \FS\SolrBundle\Doctrine\Mapper\Mapping\CommandFactory();
         $factory->add(new \FS\SolrBundle\Doctrine\Mapper\Mapping\MapAllFieldsCommand(), 'all');
-        $factory->add(new \FS\SolrBundle\Doctrine\Mapper\Mapping\MapIdentifierCommand(), 'identifier');
 
         return $factory;
     }

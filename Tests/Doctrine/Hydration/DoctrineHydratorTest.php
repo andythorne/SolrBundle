@@ -2,7 +2,7 @@
 
 namespace FS\SolrBundle\Tests\Doctrine\Hydration;
 
-
+use Doctrine\ORM\Query;
 use FS\SolrBundle\Doctrine\Hydration\DoctrineHydrator;
 use FS\SolrBundle\Doctrine\Mapper\MetaInformationFactory;
 use FS\SolrBundle\Tests\Doctrine\Mapper\SolrDocumentStub;
@@ -21,32 +21,22 @@ class DoctrineHydratorTest extends \PHPUnit_Framework_TestCase
     {
         $fetchedFromDoctrine = new ValidTestEntity();
 
-        $repository = $this->getMock('Doctrine\Common\Persistence\ObjectRepository');
-        $repository->expects($this->once())
-            ->method('find')
-            ->with(1)
-            ->will($this->returnValue($fetchedFromDoctrine));
+        $repository = $this->getMock('Doctrine\Common\Persistence\EntityRepository', null);
 
         $entity = new ValidTestEntity();
 
         $metainformations = new MetaInformationFactory();
         $metainformations = $metainformations->loadInformation($entity);
 
-        $doctrineRegistry = $this->setupDoctrineRegistry($metainformations, $repository);
+        $doctrineRegistry = $this->setupDoctrineRegistry($metainformations, $repository, $fetchedFromDoctrine);
 
         $obj = new SolrDocumentStub(array());
         $obj->id = 1;
 
-        $hydrator = $this->getMock('FS\SolrBundle\Doctrine\Hydration\Hydrator');
-        $hydrator->expects($this->once())
-            ->method('hydrate')
-            ->with($obj, $metainformations)
-            ->will($this->returnValue($fetchedFromDoctrine));
+        $doctrine = new DoctrineHydrator($doctrineRegistry);
+        $hydratedDocument = $doctrine->hydrate(array($obj), $metainformations);
 
-        $doctrine = new DoctrineHydrator($doctrineRegistry, $hydrator);
-        $hydratedDocument = $doctrine->hydrate($obj, $metainformations);
-
-        $this->assertEntityFromDBReplcesTargetEntity($metainformations, $fetchedFromDoctrine, $hydratedDocument);
+        $this->assertEquals($hydratedDocument, $fetchedFromDoctrine);
     }
 
     /**
@@ -56,59 +46,53 @@ class DoctrineHydratorTest extends \PHPUnit_Framework_TestCase
     {
         $fetchedFromDoctrine = new ValidTestEntity();
 
-        $repository = $this->getMock('Doctrine\Common\Persistence\ObjectRepository');
-        $repository->expects($this->once())
-            ->method('find')
-            ->with(1)
-            ->will($this->returnValue(null));
+        $repository = $this->getMock('Doctrine\Common\Persistence\EntityRepository', null);
 
         $entity = new ValidTestEntity();
 
         $metainformations = new MetaInformationFactory();
         $metainformations = $metainformations->loadInformation($entity);
+        $class = $metainformations->getClassName();
 
-        $doctrineRegistry = $this->setupDoctrineRegistry($metainformations, $repository);
+        $doctrineRegistry = $this->setupDoctrineRegistry($metainformations, $repository, $fetchedFromDoctrine);
 
         $obj = new SolrDocumentStub(array());
         $obj->id = 1;
 
-        $hydrator = $this->getMock('FS\SolrBundle\Doctrine\Hydration\Hydrator');
-        $hydrator->expects($this->once())
-            ->method('hydrate')
-            ->with($obj, $metainformations)
-            ->will($this->returnValue($fetchedFromDoctrine));
-
-        $doctrine = new DoctrineHydrator($doctrineRegistry, $hydrator);
+        $doctrine = new DoctrineHydrator($doctrineRegistry);
         $hydratedDocument = $doctrine->hydrate($obj, $metainformations);
 
-        $this->assertEquals($metainformations->getEntity(), $entity);
-        $this->assertEquals($entity, $hydratedDocument);
+        $this->assertInstanceOf($class,$hydratedDocument); // shallow match
 
     }
 
     /**
-     * @param $metainformations
-     * @param $fetchedFromDoctrine
-     * @param $hydratedDocument
-     */
-    private function assertEntityFromDBReplcesTargetEntity($metainformations, $fetchedFromDoctrine, $hydratedDocument)
-    {
-        $this->assertEquals($metainformations->getEntity(), $fetchedFromDoctrine);
-        $this->assertEquals($fetchedFromDoctrine, $hydratedDocument);
-    }
-
-    /**
-     * @param $metainformations
-     * @param $repository
+     * @param      $metainformations
+     * @param      $repository
+     * @param null $entity
+     *
      * @return mixed
      */
-    private function setupDoctrineRegistry($metainformations, $repository)
+    private function setupDoctrineRegistry($metainformations, $repository, $entity=null)
     {
-        $manager = $this->getMock('Doctrine\Common\Persistence\ObjectManager');
-        $manager->expects($this->once())
+        $query = new fakeQuery($entity);
+
+        $em = $this->getMock('Doctrine\ORM\EntityManager', null, array(), '', false);
+
+        $qb = $this->getMock('Doctrine\ORM\QueryBuilder', array('getQuery'), array($em));
+        $qb->expects($this->once())
+           ->method('getQuery')
+           ->will($this->returnValue($query));
+
+        $manager = $this->getMock('Doctrine\Common\Persistence\EntityManager', array('getRepository', 'createQueryBuilder'));
+        $manager->expects($this->any())
             ->method('getRepository')
             ->with($metainformations->getClassName())
             ->will($this->returnValue($repository));
+
+        $manager->expects($this->any())
+            ->method('createQueryBuilder')
+            ->will($this->returnValue($qb));
 
         $doctrineRegistry = $this->getMock('Symfony\Bridge\Doctrine\RegistryInterface');
         $doctrineRegistry->expects($this->once())
@@ -118,5 +102,20 @@ class DoctrineHydratorTest extends \PHPUnit_Framework_TestCase
         return $doctrineRegistry;
     }
 
+
 }
- 
+
+class fakeQuery
+{
+    private $result;
+
+    function __construct($result)
+    {
+        $this->result = $result;
+    }
+
+    public function getResult()
+    {
+        return $this->result;
+    }
+}

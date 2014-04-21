@@ -8,6 +8,7 @@ use FS\SolrBundle\Doctrine\Mapper\MetaInformation;
 use FS\SolrBundle\Event\ErrorEvent;
 use FS\SolrBundle\Event\Event;
 use FS\SolrBundle\Tests\Doctrine\Mapper\ValidTestEntity;
+use FS\SolrBundle\Tests\Util\MetaTestInformationFactory;
 
 class ConsoleResultFactoryTest extends \PHPUnit_Framework_TestCase
 {
@@ -31,7 +32,7 @@ class ConsoleResultFactoryTest extends \PHPUnit_Framework_TestCase
      */
     public function resultNotContainsIdAndEntityWhenMetaInformationNull()
     {
-        $event = new Event(null, null, '');
+        $event = new Event(null, null, null, '');
 
         $factory = new ConsoleResultFactory();
         $result = $factory->fromEvent($event);
@@ -46,21 +47,16 @@ class ConsoleResultFactoryTest extends \PHPUnit_Framework_TestCase
      */
     public function resultFromSuccessEventContainsNoMessage()
     {
-        $entity = new ValidTestEntity();
-        $entity->setId(1);
+        $entity = MetaTestInformationFactory::getEntity();
+        $meta = MetaTestInformationFactory::getMetaInformation($entity);
 
-        $metaInformation = new MetaInformation();
-        $metaInformation->setClassName('an entity');
-        $metaInformation->setEntity($entity);
-
-        $event = new Event(null, $metaInformation, '');
+        $event = new Event(null, $entity, $meta, '');
 
         $factory = new ConsoleResultFactory();
         $result = $factory->fromEvent($event);
 
-        $this->assertEquals(1, $result->getResultId());
-        $this->assertEquals('an entity', $result->getEntity());
+        $this->assertEquals(2, $result->getResultId());
+        $this->assertEquals(get_class($entity), $result->getEntity());
         $this->assertEquals('', $result->getMessage());
     }
 }
- 

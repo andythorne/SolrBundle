@@ -3,6 +3,7 @@ namespace FS\SolrBundle\Doctrine\Mapper\Mapping;
 
 use FS\SolrBundle\Doctrine\Annotation\Field;
 use FS\SolrBundle\Doctrine\Mapper\MetaInformation;
+use Solarium\QueryType\Update\Query\Document\Document;
 
 /**
  * command maps all fields of the entity
@@ -13,24 +14,25 @@ class MapAllFieldsCommand extends AbstractDocumentCommand
 {
 
     /**
-     * @param MetaInformation $meta
-     * @return null|\Solarium\QueryType\Update\Query\Document\Document
+     * @inheritdoc
      */
-    public function createDocument(MetaInformation $meta)
+    public function createDocument($entity, MetaInformation $meta)
     {
         $fields = $meta->getFields();
         if (count($fields) == 0) {
             return null;
         }
 
-        $document = parent::createDocument($meta);
+        $document = new Document();
+        $document->addField('id', $entity->getId());
+        $document->setBoost($meta->getBoost());
+
+        $valueMapping = $meta->extractSolrValues($entity);
 
         foreach ($fields as $field) {
-            if (!$field instanceof Field) {
-                continue;
+            if ($field instanceof Field) {
+                $document->addField($field->getNameWithAlias(), $valueMapping[$field->name], $field->getBoost());
             }
-
-            $document->addField($field->getNameWithAlias(), $field->getValue(), $field->getBoost());
         }
 
         return $document;
