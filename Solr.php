@@ -293,7 +293,6 @@ class Solr
         {
             $errorEvent = new ErrorEvent(null, $doc, $meta, json_encode($this->solrClient->getOptions()), $event);
             $errorEvent->setException($e);
-            echo $e->getMessage();
             $this->eventManager->dispatch(Events::ERROR, $errorEvent);
         }
     }
