@@ -30,7 +30,7 @@ class MapAllFieldsCommand extends AbstractDocumentCommand
         $valueMapping = $meta->extractSolrValues($entity);
 
         foreach ($fields as $field) {
-            if ($field instanceof Field) {
+            if ($field instanceof Field && array_key_exists($field->name, $valueMapping)) {
                 $document->addField($field->getNameWithAlias(), $valueMapping[$field->name], $field->getBoost());
             }
         }

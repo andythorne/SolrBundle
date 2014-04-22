@@ -2,6 +2,7 @@
 namespace FS\SolrBundle\Doctrine\Mapper;
 
 use FS\SolrBundle\Doctrine\Annotation\Field;
+use FS\SolrBundle\Doctrine\Annotation\MetaFields;
 
 class MetaInformation
 {
@@ -179,10 +180,14 @@ class MetaInformation
 
         foreach($this->getFields() as $field)
         {
-            $prop = $this->reflection->getProperty($field->field);
-            $prop->setAccessible(true);
-            $field->value             = $prop->getValue($entity);
-            $entityVals[$field->name] = $field->getValue();
+            // ignore meta fields
+            if($this->reflection->hasProperty($field->field))
+            {
+                $prop = $this->reflection->getProperty($field->field);
+                $prop->setAccessible(true);
+                $field->value             = $prop->getValue($entity);
+                $entityVals[$field->name] = $field->getValue();
+            }
         }
 
         return $entityVals;
